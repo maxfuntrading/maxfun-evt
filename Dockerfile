@@ -14,7 +14,7 @@ FROM ubuntu:24.04
 ARG ENV_FILE
 WORKDIR /app
 RUN apt update && \
-    apt install -y ca-certificates \
+    apt install -y ca-certificates
 COPY --from=builder /app/data /app/data
 COPY --from=builder /app/target/release/maxfun-evt /app
 COPY --from=builder /app/${ENV_FILE} /app/.env
