@@ -13,9 +13,7 @@ pub static PROVIDER: LazyLock<String> = LazyLock::new(||
     std::env::var("PROVIDER").expect("env not found PROVIDER")
 );
 
-// pub static MANAGER_CONTRACT_ADDR: LazyLock<String> = LazyLock::new(||
-//     std::env::var("MANAGER_CONTRACT_ADDR").expect("env not found MANAGER_CONTRACT_ADDR")
-// );
+
 pub static FACTORY_CONTRACT_ADDR: LazyLock<String> = LazyLock::new(||
     std::env::var("FACTORY_CONTRACT_ADDR").expect("env not found FACTORY_CONTRACT_ADDR")
 );
@@ -46,4 +44,11 @@ sol!(
     #[sol(rpc)]
     FACTORY,
     "data/abi/Factory.json"
+);
+
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc)]
+    ORACLE,
+    "data/abi/Oracle.json"
 );

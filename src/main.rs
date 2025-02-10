@@ -3,6 +3,7 @@ mod entity;
 mod util;
 mod core;
 mod svc;
+mod cron;
 
 #[tokio::main]
 async fn main() {
@@ -11,7 +12,12 @@ async fn main() {
     let store = core::pool::init_pool().await;
 
     // 启动定时任务
-    // let cron_store = store.clone();
+    let cron_store = store.clone();
+    tokio::spawn(async move {
+        if let Err(e) = cron::run(cron_store).await {
+            tracing::error!("cron err={e}")
+        }
+    });
 
     // 启动eth事件监听
     let evt_monitor = evt::Evt::new(store);

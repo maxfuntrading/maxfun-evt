@@ -254,6 +254,8 @@ impl Evt {
             volume_24h: Set(Decimal::ZERO),
             total_supply: Set(total_supply),
             market_cap: Set(Decimal::ZERO),
+            liquidity_token: Set(Decimal::ZERO),
+            liquidity: Set(Decimal::ZERO),
             bonding_curve: Set(Decimal::ZERO),
             uniswap_pool: Set("".to_string()),
             last_trade_ts: Set(txn_model.block_time),

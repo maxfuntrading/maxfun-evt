@@ -1,9 +1,6 @@
 use std::ops::{Div, Sub};
-use crate::core::Store;
-use crate::entity::*;
-use crate::svc::TOKEN;
-use crate::util::PeriodType;
-use crate::util::{LibError, LibResult};
+use std::str::FromStr;
+
 use alloy::primitives::utils::{format_ether, ParseUnits, Unit};
 use alloy::primitives::U256;
 use rust_decimal::Decimal;
@@ -11,8 +8,12 @@ use sea_orm::prelude::Expr;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait, IntoActiveModel, QueryFilter, QueryOrder, QuerySelect, TransactionTrait};
-use std::str::FromStr;
 
+use crate::core::Store;
+use crate::entity::*;
+use crate::svc::TOKEN;
+use crate::util::PeriodType;
+use crate::util::{LibError, LibResult};
 pub async fn handle_trade(
     store: &Store,
     user: String,
@@ -23,13 +24,14 @@ pub async fn handle_trade(
     trade_type: i32,
     txn_model: db_evt_txn_log::Model,
 ) -> LibResult<()> {
-    let (raised_decimal, raised_address) = db_token_summary::Entity::find()
+    let (raised_decimal, raised_address, oracle_address) = db_token_summary::Entity::find()
         .filter(db_token_summary::Column::TokenAddress.eq(token.clone()))
         .inner_join(db_raised_token::Entity)
         .select_only()
         .column(db_raised_token::Column::Decimal)
         .column(db_raised_token::Column::Address)
-        .into_tuple::<(i32, String)>()
+        .column(db_raised_token::Column::Oracle)
+        .into_tuple::<(i32, String, String)>()
         .one(&store.db_pool)
         .await?
         .ok_or_else(|| LibError::InternalError("".into()))?;
@@ -48,7 +50,7 @@ pub async fn handle_trade(
     };
 
     let price_value = Decimal::from_str(&format_ether(price))?;
-    let oracle_price = TOKEN.oracle_price(&raised_address).await?;
+    let oracle_price = TOKEN.oracle_price(&oracle_address).await?;
     let price_usd = price_value * oracle_price;
 
     let user_balance = TOKEN.balance_of(&token, &user).await?;
@@ -121,7 +123,7 @@ async fn handle_token_summary(
         .column_as(db_kline_5m::Column::Volume.sum(), "volume")
         .into_tuple::<Option<Decimal>>()
         .one(tx).await?
-        .unwrap_or(Some(Decimal::new(0, 0))).unwrap() + exchange.amount0;
+        .unwrap_or(Some(Decimal::ZERO)).unwrap_or(Decimal::ZERO) + exchange.amount0;
 
     let last_price = if let Some(kline) = last_kline {
         kline.close
@@ -129,8 +131,16 @@ async fn handle_token_summary(
         exchange.price
     };
 
+    let last_price = if last_price == Decimal::ZERO {
+        Decimal::new(1, 18)
+    } else {
+        last_price
+    };
+
+
     let rate_24h = exchange.price.sub(last_price).div(last_price);
-    let bonding_curve = TOKEN.curve_process(&exchange.token_address).await?;
+    let (bonding_curve, liquidity_token) = TOKEN.curve_process(&exchange.token_address).await?;
+    let liquidity = liquidity_token * exchange.price;
     db_token_summary::Entity::update_many()
         .filter(db_token_summary::Column::TokenAddress.eq(&exchange.token_address))
         .col_expr(db_token_summary::Column::Volume24h, Expr::value(volume_24h))
@@ -138,6 +148,8 @@ async fn handle_token_summary(
         .col_expr(db_token_summary::Column::PriceToken, Expr::value(exchange.price_token))
         .col_expr(db_token_summary::Column::PriceRate24h, Expr::value(rate_24h))
         .col_expr(db_token_summary::Column::BondingCurve, Expr::value(bonding_curve))
+        .col_expr(db_token_summary::Column::LiquidityToken, Expr::value(liquidity_token))
+        .col_expr(db_token_summary::Column::Liquidity, Expr::value(liquidity))
         .col_expr(db_token_summary::Column::MarketCap, Expr::col(db_token_summary::Column::TotalSupply).mul(exchange.price))
         .col_expr(db_token_summary::Column::LastTradeTs, Expr::value(exchange.block_time))
         .exec(tx)
