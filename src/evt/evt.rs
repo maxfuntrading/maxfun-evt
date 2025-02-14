@@ -243,6 +243,7 @@ impl Evt {
             token_address: Set(token.clone()),
             raised_address: Set(asset.clone()),
             pair_address: Set(pair.clone()),
+            token_id: Set(id),
         };
         let token_summary_model = db_token_summary::ActiveModel {
             token_address: Set(token.clone()),
