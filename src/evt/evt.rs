@@ -279,7 +279,7 @@ impl Evt {
             .filter(db_token_info::Column::Id.eq(id))
             .col_expr(db_token_info::Column::TokenAddress, Expr::value(token))
             .col_expr(
-                db_token_info::Column::CreateTs,
+                db_token_info::Column::LaunchTs,
                 Expr::value(txn_model.block_time),
             )
             .exec(&tx)
