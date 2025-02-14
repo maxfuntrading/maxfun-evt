@@ -8,10 +8,10 @@ mod cron;
 #[tokio::main]
 async fn main() {
     util::log::init();
-    // 初始化数据库链接
+    // 初始化数据库链
     let store = core::pool::init_pool().await;
 
-    // 启动定时任务
+    // start cron time
     let cron_store = store.clone();
     tokio::spawn(async move {
         if let Err(e) = cron::run(cron_store).await {
