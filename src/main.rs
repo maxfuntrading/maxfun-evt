@@ -8,7 +8,7 @@ mod cron;
 #[tokio::main]
 async fn main() {
     util::log::init();
-    // 初始化数据库链
+    // 初始化数据
     let store = core::pool::init_pool().await;
 
     // start cron time
