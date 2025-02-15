@@ -8,7 +8,7 @@ mod cron;
 #[tokio::main]
 async fn main() {
     util::log::init();
-    // 初始化数据   
+    // init log 
     let store = core::pool::init_pool().await;
 
     // start cron time
@@ -19,7 +19,7 @@ async fn main() {
         }
     });
 
-    // 启动eth事件监听
+    // start evt monitor
     let evt_monitor = evt::Evt::new(store);
     if let Err(e) = evt_monitor.run().await {
         tracing::error!("evt monitor err={e}")

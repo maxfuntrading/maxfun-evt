@@ -63,14 +63,14 @@ pub async fn handle_trade(
     // convert amount to decimal
     let unit = Unit::new(raised_decimal as u8).unwrap();
     let (amount0, amount1) = if trade_type == 0 {
-        let value = ParseUnits::from(amount_in).format_units(unit);
         let amount0 = Decimal::from_str(&format_ether(amount_out))?;
+        let value = ParseUnits::from(amount_in).format_units(unit);
         let amount1 = Decimal::from_str(&value)?;
         (amount0, amount1)
     } else {
+        let amount0 = Decimal::from_str(&format_ether(amount_in))?;
         let value = ParseUnits::from(amount_out).format_units(unit);
-        let amount0 = Decimal::from_str(&value)?;
-        let amount1 = Decimal::from_str(&format_ether(amount_out))?;
+        let amount1 = Decimal::from_str(&value)?;
         (amount0, amount1)
     };
 
