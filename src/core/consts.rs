@@ -43,7 +43,7 @@ sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
     FACTORY,
-    "data/abi/Factory.json"
+    "data/abi/Factory-0216.json"
 );
 
 sol!(

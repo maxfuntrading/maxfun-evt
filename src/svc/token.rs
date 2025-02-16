@@ -59,12 +59,11 @@ impl Token {
             .tokenInfo(token_address)
             .call()
             .await?
-            .data
-            .totalShare;
+            .soldTokenAmount;
         let liquidity_token = Decimal::from_str(&format_ether(now_point))?;
         let end_point = self
             .factory
-            .launchPointShare(token_address)
+            .getTokenTotalSalesAmount(token_address)
             .call()
             .await?
             ._0;
