@@ -160,7 +160,7 @@ impl Evt {
                         tracing::error!("handle_bought_evt. txn_hash={txn_hash}, err={e}")
                     }
                 }
-                "381d54fa425631e6266af114239150fae1d5db67bb65b4fa9ecc65013107e07e" => {
+                "0x381d54fa425631e6266af114239150fae1d5db67bb65b4fa9ecc65013107e07e" => {
                     // graduated
                     if let Err(e) = self.handle_graduated_evt(raw_log, txn_model).await {
                         tracing::error!("handle_graduated_evt. txn_hash={txn_hash}, err={e}")
