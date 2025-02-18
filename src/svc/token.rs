@@ -56,10 +56,10 @@ impl Token {
         let token_address = token.parse()?;
         let now_point = self
             .factory
-            .tokenInfo(token_address)
+            .getTokenSoldAmount(token_address)
             .call()
             .await?
-            .soldTokenAmount;
+            ._0;
         let liquidity_token = Decimal::from_str(&format_ether(now_point))?;
         let end_point = self
             .factory

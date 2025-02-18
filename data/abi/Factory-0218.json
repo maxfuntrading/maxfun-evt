@@ -192,19 +192,6 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newGradFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "GradFeeSet",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
         "indexed": true,
         "internalType": "address",
         "name": "token",
@@ -389,6 +376,19 @@
       }
     ],
     "name": "MaxFunManagerSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "newMigrationTax",
+        "type": "uint64"
+      }
+    ],
+    "name": "MigrationTaxSet",
     "type": "event"
   },
   {
@@ -698,11 +698,6 @@
         "internalType": "uint256",
         "name": "amountMinOut",
         "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
       }
     ],
     "name": "buy",
@@ -743,6 +738,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getMigrationTax",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -777,6 +785,25 @@
   {
     "inputs": [],
     "name": "getTaxVault",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      }
+    ],
+    "name": "getTokenAsset",
     "outputs": [
       {
         "internalType": "address",
@@ -866,6 +893,11 @@
               },
               {
                 "internalType": "address",
+                "name": "baseAsset",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
                 "name": "creator",
                 "type": "address"
               },
@@ -944,11 +976,6 @@
               {
                 "internalType": "uint64",
                 "name": "liquidityPoolRatio",
-                "type": "uint64"
-              },
-              {
-                "internalType": "uint64",
-                "name": "migrationTax",
                 "type": "uint64"
               },
               {
@@ -1067,25 +1094,6 @@
         "type": "address"
       }
     ],
-    "name": "getTokenMigrationTax",
-    "outputs": [
-      {
-        "internalType": "uint64",
-        "name": "",
-        "type": "uint64"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "tokenAddress",
-        "type": "address"
-      }
-    ],
     "name": "getTokenRaisedAssetAmount",
     "outputs": [
       {
@@ -1143,6 +1151,25 @@
         "type": "address"
       }
     ],
+    "name": "getTokenSoldAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "tokenAddress",
+        "type": "address"
+      }
+    ],
     "name": "getTokenTotalSalesAmount",
     "outputs": [
       {
@@ -1168,19 +1195,6 @@
         "internalType": "address[]",
         "name": "",
         "type": "address[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "gradFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1303,11 +1317,6 @@
         "type": "uint64"
       },
       {
-        "internalType": "uint64",
-        "name": "migrationTax",
-        "type": "uint64"
-      },
-      {
         "internalType": "address",
         "name": "asset",
         "type": "address"
@@ -1379,6 +1388,19 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "migrationTax",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
       }
     ],
     "stateMutability": "view",
@@ -1544,11 +1566,6 @@
         "internalType": "uint256",
         "name": "amountMinOut",
         "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
       }
     ],
     "name": "sell",
@@ -1601,19 +1618,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "newGradFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "setGradFee",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "asset",
         "type": "address"
@@ -1651,6 +1655,19 @@
       }
     ],
     "name": "setMaxFunManager",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "newMigrationTax",
+        "type": "uint64"
+      }
+    ],
+    "name": "setMigrationTax",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1771,6 +1788,11 @@
           },
           {
             "internalType": "address",
+            "name": "baseAsset",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
             "name": "creator",
             "type": "address"
           },
@@ -1849,11 +1871,6 @@
           {
             "internalType": "uint64",
             "name": "liquidityPoolRatio",
-            "type": "uint64"
-          },
-          {
-            "internalType": "uint64",
-            "name": "migrationTax",
             "type": "uint64"
           },
           {
