@@ -347,6 +347,12 @@
         "internalType": "uint256",
         "name": "tokenInfosLength",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "initialPrice",
+        "type": "uint256"
       }
     ],
     "name": "Launched",
@@ -1475,11 +1481,6 @@
       {
         "internalType": "address",
         "name": "tokenAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "asset",
         "type": "address"
       }
     ],

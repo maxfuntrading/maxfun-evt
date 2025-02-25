@@ -1,7 +1,9 @@
+use std::str::FromStr;
 use std::time::Duration;
 
 use alloy::eips::BlockId;
 use alloy::network::Ethereum;
+use alloy::primitives::utils::format_ether;
 use alloy::primitives::Address;
 use alloy::providers::{Provider, RootProvider};
 use alloy::rpc::types::{Filter, RawLog};
@@ -11,7 +13,7 @@ use rust_decimal::Decimal;
 use sea_orm::prelude::Expr;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect, TransactionTrait
 };
 
 use super::evt_trade::handle_trade;
@@ -88,7 +90,7 @@ impl Evt {
             .to_block(latest_block)
             .events(vec![
                 // "Transfer(address,address,uint256)",
-                "Launched(address,address,address,uint256,uint256)",
+                "Launched(address,address,address,uint256,uint256,uint256)",
                 "InitialBuyAndUpdate(address,address,uint256,uint256,uint256)",
                 "Sold(address,address,uint256,uint256,uint256)",
                 "Bought(address,address,uint256,uint256,uint256)",
@@ -131,7 +133,7 @@ impl Evt {
                 data: log.data().clone().data,
             };
             match topic.as_str() {
-                "0xec774f0683e9ac48e8d835f412f9f877a8a5dee9af3170d78cf3ef33149d15e7" => {
+                "0x46763160257a346e655d6a803f4d4b1b91bfa36e12a402b37f5e40aa71945e84" => {
                     // launched
                     if let Err(e) = self.handle_launched_evt(raw_log, txn_model).await {
                         tracing::error!("handle_launched_evt. txn_hash={txn_hash}, err={e}")
@@ -231,6 +233,19 @@ impl Evt {
         let pair = format!("{:#x}", data.pair);
         let id = data.id.to::<i64>();
         let total_supply = TOKEN.total_supply(&token).await?;
+        
+        let oracle_address = db_raised_token::Entity::find()
+        .filter(db_raised_token::Column::Address.eq(&asset))
+        .select_only()
+        .column(db_raised_token::Column::Oracle)
+        .into_tuple::<String>()
+        .one(&self.store.db_pool)
+        .await?.ok_or_else(|| LibError::InternalError("asset info not found".to_string()))?;
+
+        let price_value = Decimal::from_str(&format_ether(data.initialPrice))?;
+        let oracle_price = TOKEN.oracle_price(&oracle_address).await?;
+        let price_usd = price_value * oracle_price;
+
         // 1. update token_info
         // 2. insert txn_log
         // 3. insert evt_token_log
@@ -249,12 +264,12 @@ impl Evt {
             token_address: Set(token.clone()),
             raised_token: Set(asset.clone()),
             pair_address: Set(pair.clone()),
-            price: Set(Decimal::ZERO),
-            price_token: Set(Decimal::ZERO),
+            price: Set(price_usd),
+            price_token: Set(price_value),
             price_rate24h: Set(Decimal::ZERO),
             volume_24h: Set(Decimal::ZERO),
             total_supply: Set(total_supply),
-            market_cap: Set(Decimal::ZERO),
+            market_cap: Set(total_supply * price_usd),
             liquidity_token: Set(Decimal::ZERO),
             liquidity: Set(Decimal::ZERO),
             bonding_curve: Set(Decimal::ZERO),
