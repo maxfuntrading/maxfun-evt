@@ -150,7 +150,7 @@ async fn handle_token_summary(
     exchange: &db_evt_trade_log::Model,
 ) -> LibResult<()> {
     let now_ts = chrono::Utc::now().timestamp();
-    let start_ts = now_ts - now_ts % 3600;
+    let start_ts = now_ts - now_ts % 300;
     let end_ts = start_ts - 3600 * 24;
 
     let last_kline = db_kline_5m::Entity::find()
@@ -176,7 +176,10 @@ async fn handle_token_summary(
     let last_price = if let Some(kline) = last_kline {
         kline.close
     } else {
-        exchange.price
+        db_kline_5m::Entity::find()
+            .filter(db_kline_5m::Column::TokenAddress.eq(&exchange.token_address))
+            .order_by_asc(db_kline_5m::Column::OpenTs)
+            .limit(1).one(tx).await?.unwrap().close
     };
 
     let last_price = if last_price == Decimal::ZERO {

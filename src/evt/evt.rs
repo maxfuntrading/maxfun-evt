@@ -1,6 +1,11 @@
 use std::str::FromStr;
 use std::time::Duration;
 
+use super::evt_trade::handle_trade;
+use crate::core::{consts, Store};
+use crate::entity::*;
+use crate::svc::TOKEN;
+use crate::util::{LibError, LibResult, PeriodType};
 use alloy::eips::BlockId;
 use alloy::network::Ethereum;
 use alloy::primitives::utils::format_ether;
@@ -11,17 +16,12 @@ use alloy::sol_types::SolEvent;
 use redis::AsyncCommands;
 use rust_decimal::Decimal;
 use sea_orm::prelude::Expr;
+use sea_orm::sea_query::OnConflict;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect, TransactionTrait
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect,
+    TransactionTrait,
 };
-
-use super::evt_trade::handle_trade;
-use crate::core::{consts, Store};
-use crate::entity::*;
-use crate::svc::TOKEN;
-use crate::util::{LibError, LibResult, PeriodType};
-
 
 pub struct Evt {
     store: Store,
@@ -227,24 +227,48 @@ impl Evt {
         raw_log: RawLog,
         txn_model: db_evt_txn_log::Model,
     ) -> LibResult<()> {
-        let data = consts::FACTORY::Launched::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
+        let data =
+            consts::FACTORY::Launched::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
         let token = format!("{:#x}", data.token);
         let asset = format!("{:#x}", data.asset);
         let pair = format!("{:#x}", data.pair);
         let id = data.id.to::<i64>();
         let total_supply = TOKEN.total_supply(&token).await?;
-        
+
         let oracle_address = db_raised_token::Entity::find()
-        .filter(db_raised_token::Column::Address.eq(&asset))
-        .select_only()
-        .column(db_raised_token::Column::Oracle)
-        .into_tuple::<String>()
-        .one(&self.store.db_pool)
-        .await?.ok_or_else(|| LibError::InternalError("asset info not found".to_string()))?;
+            .filter(db_raised_token::Column::Address.eq(&asset))
+            .select_only()
+            .column(db_raised_token::Column::Oracle)
+            .into_tuple::<String>()
+            .one(&self.store.db_pool)
+            .await?
+            .ok_or_else(|| LibError::InternalError("asset info not found".to_string()))?;
 
         let price_value = Decimal::from_str(&format_ether(data.initialPrice))?;
         let oracle_price = TOKEN.oracle_price(&oracle_address).await?;
         let price_usd = price_value * oracle_price;
+
+        let token_info = db_token_info::Entity::find_by_id(id as i32)
+            .one(&self.store.db_pool)
+            .await?
+            .ok_or_else(|| LibError::InternalError("token info not found".to_string()))?;
+
+        let user_balance = TOKEN.balance_of(&token, &token_info.user_address).await?;
+
+        let user_summary_model = db_user_summary::ActiveModel {
+            user_address: Set(token_info.user_address.clone()),
+            token_address: Set(token.clone()),
+            amount: Set(user_balance),
+            update_ts: Set(txn_model.block_time),
+        };
+
+        let user_onconflict = OnConflict::columns([
+            db_user_summary::Column::UserAddress,
+            db_user_summary::Column::TokenAddress,
+        ])
+        .update_column(db_user_summary::Column::Amount)
+        .update_column(db_user_summary::Column::UpdateTs)
+        .to_owned();
 
         // 1. update token_info
         // 2. insert txn_log
@@ -282,10 +306,10 @@ impl Evt {
             token_address: Set(token.clone()),
             open_ts: Set(open_ts),
             close_ts: Set(close_ts),
-            high: Set(Decimal::ZERO),
-            low: Set(Decimal::ZERO),
-            open: Set(Decimal::ZERO),
-            close: Set(Decimal::ZERO),
+            high: Set(price_usd),
+            low: Set(price_usd),
+            open: Set(price_usd),
+            close: Set(price_usd),
             volume: Set(Decimal::ZERO),
             amount: Set(Decimal::ZERO),
             txn_num: Set(0),
@@ -303,6 +327,10 @@ impl Evt {
         token_log_model.insert(&tx).await?;
         token_summary_model.insert(&tx).await?;
         kline_model.insert(&tx).await?;
+        db_user_summary::Entity::insert(user_summary_model)
+            .on_conflict(user_onconflict)
+            .exec(&tx)
+            .await?;
         txn_model.into_active_model().insert(&tx).await?;
         tx.commit().await?;
 
@@ -340,7 +368,8 @@ impl Evt {
         raw_log: RawLog,
         txn_model: db_evt_txn_log::Model,
     ) -> LibResult<()> {
-        let data = consts::FACTORY::Bought::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
+        let data =
+            consts::FACTORY::Bought::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
 
         let (user, token) = (format!("{:#x}", data.user), format!("{:#x}", data.token));
         handle_trade(
@@ -362,7 +391,8 @@ impl Evt {
         raw_log: RawLog,
         txn_model: db_evt_txn_log::Model,
     ) -> LibResult<()> {
-        let data = consts::FACTORY::Sold::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
+        let data =
+            consts::FACTORY::Sold::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
 
         let (user, token) = (format!("{:#x}", data.user), format!("{:#x}", data.token));
         handle_trade(
@@ -384,7 +414,11 @@ impl Evt {
         raw_log: RawLog,
         txn_model: db_evt_txn_log::Model,
     ) -> LibResult<()> {
-        let data = consts::FACTORY::Graduated::decode_raw_log(raw_log.topics, raw_log.data.as_ref(), true)?;
+        let data = consts::FACTORY::Graduated::decode_raw_log(
+            raw_log.topics,
+            raw_log.data.as_ref(),
+            true,
+        )?;
         let token = format!("{:#x}", data.token);
         let uniswap_pool = format!("{:#x}", data.uniswapV2Pair);
 

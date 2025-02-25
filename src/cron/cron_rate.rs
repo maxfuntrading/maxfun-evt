@@ -35,7 +35,7 @@ impl CronRate {
 
     async fn handle_token(&self, token: &str, price: Decimal) -> LibResult<()> {
         let now_ts = chrono::Utc::now().timestamp();
-        let start_ts = now_ts - now_ts % 3600;
+        let start_ts = now_ts - now_ts % 300;
         let end_ts = start_ts - 3600 * 24;
         let last_kline = db_kline_5m::Entity::find()
             .filter(db_kline_5m::Column::TokenAddress.eq(token))
@@ -58,8 +58,18 @@ impl CronRate {
         let last_price = if let Some(kline) = last_kline {
             kline.close
         } else {
-            Decimal::new(1, 18)
+            db_kline_5m::Entity::find()
+                .filter(db_kline_5m::Column::TokenAddress.eq(token))
+                .order_by_asc(db_kline_5m::Column::OpenTs)
+                .limit(1).one(&self.store.db_pool).await?.unwrap().close
         };
+
+        let last_price = if last_price == Decimal::ZERO {
+            Decimal::new(1, 18)
+        } else {
+            last_price
+        };
+
 
         let rate_24h = price.sub(last_price).div(last_price);
         db_token_summary::Entity::update_many()
