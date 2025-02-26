@@ -165,13 +165,13 @@ async fn handle_token_summary(
         .filter(db_kline_5m::Column::TokenAddress.eq(&exchange.token_address))
         .filter(db_kline_5m::Column::OpenTs.gte(end_ts))
         .select_only()
-        .column_as(db_kline_5m::Column::Volume.sum(), "volume")
+        .column_as(db_kline_5m::Column::Amount.sum(), "volume")
         .into_tuple::<Option<Decimal>>()
         .one(tx)
         .await?
         .unwrap_or(Some(Decimal::ZERO))
         .unwrap_or(Decimal::ZERO)
-        + exchange.amount0;
+        + exchange.amount0 * exchange.price_token;
 
     let last_price = if let Some(kline) = last_kline {
         kline.close
@@ -188,7 +188,7 @@ async fn handle_token_summary(
         last_price
     };
 
-    let rate_24h = exchange.price.sub(last_price).div(last_price);
+    let rate_24h = exchange.price_token.sub(last_price).div(last_price);
     let (bonding_curve, liquidity_token) = TOKEN.curve_process(&exchange.token_address).await?;
     let liquidity = liquidity_token * exchange.price;
 
@@ -243,12 +243,12 @@ async fn handle_kline_5m(
         token_address: Set(exchange.token_address.clone()),
         open_ts: Set(open_ts),
         close_ts: Set(close_ts),
-        high: Set(exchange.price),
-        low: Set(exchange.price),
-        open: Set(exchange.price),
-        close: Set(exchange.price),
+        high: Set(exchange.price_token),
+        low: Set(exchange.price_token),
+        open: Set(exchange.price_token),
+        close: Set(exchange.price_token),
         volume: Set(exchange.amount0),
-        amount: Set(exchange.amount0 * exchange.price),
+        amount: Set(exchange.amount0 * exchange.price_token),
         txn_num: Set(1),
     };
 
@@ -260,16 +260,16 @@ async fn handle_kline_5m(
     .value(
         db_kline_5m::Column::High,
         Expr::case(
-            Expr::col((db_kline_5m::Entity, db_kline_5m::Column::High)).lt(exchange.price),
-            Expr::val(exchange.price),
+            Expr::col((db_kline_5m::Entity, db_kline_5m::Column::High)).lt(exchange.price_token),
+            Expr::val(exchange.price_token),
         )
         .finally(Expr::col((db_kline_5m::Entity, db_kline_5m::Column::High))),
     )
     .value(
         db_kline_5m::Column::Low,
         Expr::case(
-            Expr::col((db_kline_5m::Entity, db_kline_5m::Column::Low)).gt(exchange.price),
-            Expr::val(exchange.price),
+            Expr::col((db_kline_5m::Entity, db_kline_5m::Column::Low)).gt(exchange.price_token),
+            Expr::val(exchange.price_token),
         )
         .finally(Expr::col((db_kline_5m::Entity, db_kline_5m::Column::Low))),
     )
@@ -281,7 +281,7 @@ async fn handle_kline_5m(
     .value(
         db_kline_5m::Column::Amount,
         Expr::col((db_kline_5m::Entity, db_kline_5m::Column::Amount))
-            .add(Expr::val(exchange.amount0 * exchange.price)),
+            .add(Expr::val(exchange.amount0 * exchange.price_token)),
     )
     .value(
         db_kline_5m::Column::TxnNum,

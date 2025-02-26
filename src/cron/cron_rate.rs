@@ -21,7 +21,7 @@ impl CronRate {
         let tokens = db_token_summary::Entity::find()
             .select_only()
             .column_as(db_token_summary::Column::TokenAddress, "token")
-            .column_as(db_token_summary::Column::Price, "price")
+            .column_as(db_token_summary::Column::PriceToken, "price")
             .into_tuple::<(String, Decimal)>()
             .all(&self.store.db_pool)
             .await?;
@@ -48,7 +48,7 @@ impl CronRate {
             .filter(db_kline_5m::Column::TokenAddress.eq(token))
             .filter(db_kline_5m::Column::OpenTs.gte(end_ts))
             .select_only()
-            .column_as(db_kline_5m::Column::Volume.sum(), "volume")
+            .column_as(db_kline_5m::Column::Amount.sum(), "volume")
             .into_tuple::<Option<Decimal>>()
             .one(&self.store.db_pool)
             .await?

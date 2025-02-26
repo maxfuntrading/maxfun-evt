@@ -35,9 +35,7 @@ impl Token {
         let user_address = user.parse()?;
         let contract = consts::ERC20::new(token_address, self.provider.clone());
         let balance = contract.balanceOf(user_address).call().await?._0;
-        println!("Balance: {}", balance);
         let amount = Decimal::from_str(&format_ether(balance))?;
-        println!("Amount: {}", amount);
         Ok(amount)
     }
 
@@ -45,9 +43,7 @@ impl Token {
         let token_address = token.parse()?;
         let contract = consts::ERC20::new(token_address, self.provider.clone());
         let balance = contract.totalSupply().call().await?._0;
-        println!("Balance: {}", balance);
         let amount = Decimal::from_str(&format_ether(balance))?;
-        println!("Amount: {}", amount);
         Ok(amount)
     }
 
@@ -68,11 +64,7 @@ impl Token {
             .await?
             ._0;
         let end_point = Decimal::from_str(&format_ether(end_point))?;
-        println!("Liquidity Token: {}", liquidity_token);
-        println!("End Point: {}", end_point);
-        // let process = Decimal::from_str(&format_units(now_point.div(end_point), 2)?)?;
         let process = liquidity_token.div(end_point);
-        println!("Process: {}", process);
         Ok((process, liquidity_token))
     }
 
@@ -82,7 +74,6 @@ impl Token {
         let answer = contract.latestAnswer().call().await?._0;
         let decimal = contract.decimals().call().await?._0;
         let price = Decimal::from_str(&format_units(answer, decimal)?)?;
-        println!("price: {}", price);
         Ok(price)
     }
 

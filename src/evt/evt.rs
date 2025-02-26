@@ -255,13 +255,6 @@ impl Evt {
 
         let user_balance = TOKEN.balance_of(&token, &token_info.user_address).await?;
 
-        let user_summary_model = db_user_summary::ActiveModel {
-            user_address: Set(token_info.user_address.clone()),
-            token_address: Set(token.clone()),
-            amount: Set(user_balance),
-            update_ts: Set(txn_model.block_time),
-        };
-
         let user_onconflict = OnConflict::columns([
             db_user_summary::Column::UserAddress,
             db_user_summary::Column::TokenAddress,
@@ -317,7 +310,7 @@ impl Evt {
         let tx = self.store.db_pool.begin().await?;
         db_token_info::Entity::update_many()
             .filter(db_token_info::Column::Id.eq(id))
-            .col_expr(db_token_info::Column::TokenAddress, Expr::value(token))
+            .col_expr(db_token_info::Column::TokenAddress, Expr::value(token.clone()))
             .col_expr(
                 db_token_info::Column::LaunchTs,
                 Expr::value(txn_model.block_time),
@@ -327,10 +320,18 @@ impl Evt {
         token_log_model.insert(&tx).await?;
         token_summary_model.insert(&tx).await?;
         kline_model.insert(&tx).await?;
-        db_user_summary::Entity::insert(user_summary_model)
-            .on_conflict(user_onconflict)
-            .exec(&tx)
-            .await?;
+        if user_balance != Decimal::ZERO {
+            let user_summary_model = db_user_summary::ActiveModel {
+                user_address: Set(token_info.user_address.clone()),
+                token_address: Set(token.clone()),
+                amount: Set(user_balance),
+                update_ts: Set(txn_model.block_time),
+            };
+            db_user_summary::Entity::insert(user_summary_model)
+                .on_conflict(user_onconflict)
+                .exec(&tx)
+                .await?;
+        }
         txn_model.into_active_model().insert(&tx).await?;
         tx.commit().await?;
 
