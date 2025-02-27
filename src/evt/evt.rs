@@ -276,6 +276,7 @@ impl Evt {
             raised_address: Set(asset.clone()),
             pair_address: Set(pair.clone()),
             token_id: Set(id),
+            init_price: Set(price_value),
         };
         let token_summary_model = db_token_summary::ActiveModel {
             token_address: Set(token.clone()),

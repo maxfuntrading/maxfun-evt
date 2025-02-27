@@ -118,9 +118,8 @@ pub async fn handle_trade(
 
     let tx = store.db_pool.begin().await?;
     txn_model.into_active_model().insert(&tx).await?;
-
-    handle_kline_5m(&tx, &trade_log_model, PeriodType::M5).await?;
     handle_token_summary(&tx, &trade_log_model).await?;
+    handle_kline_5m(&tx, &trade_log_model, PeriodType::M5).await?;
     trade_log_model.into_active_model().insert(&tx).await?;
     db_user_summary::Entity::insert(user_summary_model)
         .on_conflict(user_onconflict)
@@ -189,6 +188,7 @@ async fn handle_token_summary(
     };
 
     let rate_24h = exchange.price_token.sub(last_price).div(last_price);
+    tracing::info!("last_price: {}, now_price: {}, rate: {}", last_price, exchange.price_token, rate_24h);
     let (bonding_curve, liquidity_token) = TOKEN.curve_process(&exchange.token_address).await?;
     let liquidity = liquidity_token * exchange.price;
 

@@ -15,6 +15,7 @@ pub struct Model {
     pub raised_address: String,
     pub pair_address: String,
     pub token_id: i64,
+    pub init_price: Decimal,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
