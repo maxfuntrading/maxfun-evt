@@ -1,5 +1,5 @@
 use std::time::Duration;
-use redis::{Client};
+use redis::Client;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use tracing::log;
 
