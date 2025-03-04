@@ -9,7 +9,7 @@ on:
 
 env:
   AWS_REGION: 'ap-southeast-1'          # 例如: us-east-1
-  ECR_REPOSITORY: 'maxfun-avt'   # 例如: maxfun-avt
+  ECR_REPOSITORY: 'maxfun-evt'   # 例如: maxfun-evt
 
 
 jobs:
