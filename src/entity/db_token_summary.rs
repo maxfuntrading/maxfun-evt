@@ -14,6 +14,8 @@ pub struct Model {
     pub volume_24h: Decimal,
     pub total_supply: Decimal,
     pub market_cap: Decimal,
+    pub liquidity: Decimal,
+    pub liquidity_token: Decimal,
     pub bonding_curve: Decimal,
     pub uniswap_pool: String,
     pub last_trade_ts: i64,

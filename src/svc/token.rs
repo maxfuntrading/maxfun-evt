@@ -35,9 +35,7 @@ impl Token {
         let user_address = user.parse()?;
         let contract = consts::ERC20::new(token_address, self.provider.clone());
         let balance = contract.balanceOf(user_address).call().await?._0;
-        println!("Balance: {}", balance);
         let amount = Decimal::from_str(&format_ether(balance))?;
-        println!("Amount: {}", amount);
         Ok(amount)
     }
 
@@ -45,36 +43,41 @@ impl Token {
         let token_address = token.parse()?;
         let contract = consts::ERC20::new(token_address, self.provider.clone());
         let balance = contract.totalSupply().call().await?._0;
-        println!("Balance: {}", balance);
         let amount = Decimal::from_str(&format_ether(balance))?;
-        println!("Amount: {}", amount);
         Ok(amount)
     }
 
-    pub async fn oracle_price(&self, token: &str) -> LibResult<Decimal> {
-        println!("Token: {}", token);
-        Ok(Decimal::new(1, 0))
-    }
 
-    pub async fn curve_process(&self, token: &str) -> LibResult<Decimal> {
+    pub async fn curve_process(&self, token: &str) -> LibResult<(Decimal, Decimal)> {
         let token_address = token.parse()?;
         let now_point = self
             .factory
-            .tokenInfo(token_address)
-            .call()
-            .await?
-            .data
-            .totalShare;
-        let end_point = self
-            .factory
-            .launchPointShare(token_address)
+            .getTokenSoldAmount(token_address)
             .call()
             .await?
             ._0;
-        let process = Decimal::from_str(&format_units(now_point.div(end_point), 2)?)?;
-        println!("Process: {}", process);
-        Ok(process)
+        let liquidity_token = Decimal::from_str(&format_ether(now_point))?;
+        let end_point = self
+            .factory
+            .getTokenTotalSalesAmount(token_address)
+            .call()
+            .await?
+            ._0;
+        let end_point = Decimal::from_str(&format_ether(end_point))?;
+        let process = liquidity_token.div(end_point);
+        Ok((process, liquidity_token))
     }
+
+    pub async fn oracle_price(&self, token: &str) -> LibResult<Decimal> {
+        let token_address = token.parse()?;
+        let contract = consts::ORACLE::new(token_address, self.provider.clone());
+        let answer = contract.latestAnswer().call().await?._0;
+        let decimal = contract.decimals().call().await?._0;
+        let price = Decimal::from_str(&format_units(answer, decimal)?)?;
+        Ok(price)
+    }
+
+
 }
 
 #[cfg(test)]
