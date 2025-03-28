@@ -1,0 +1,19 @@
+# docker-compose.yml
+# For testing development in local
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16.0
+    ports:
+      - 8432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=maxfun_dev
+
+  redis:
+    image: redis:8.0-M04-alpine
+    ports:
+      - 8379:6379
