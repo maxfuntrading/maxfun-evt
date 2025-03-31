@@ -47,7 +47,6 @@ impl Token {
         Ok(amount)
     }
 
-
     pub async fn curve_process(&self, token: &str) -> LibResult<(Decimal, Decimal)> {
         let token_address = token.parse()?;
         let now_point = self
@@ -76,8 +75,6 @@ impl Token {
         let price = Decimal::from_str(&format_units(answer, decimal)?)?;
         Ok(price)
     }
-
-
 }
 
 #[cfg(test)]
@@ -94,5 +91,14 @@ mod tests {
             )
             .await;
         assert!(balance.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_oracle_price() {
+        dotenvy::dotenv().expect("");
+        let price = TOKEN
+            .oracle_price("0xB72052E8FaCC4c032a55d653007F60f95dBbA525")
+            .await;
+        assert!(price.is_ok());
     }
 }
