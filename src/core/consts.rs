@@ -27,7 +27,7 @@ pub static INIT_BLOCK: LazyLock<u64> = LazyLock::new(||
 // pub const MANAGER_ABI_FILE: &str = "data/abi/MaxFunManager.json";
 // pub const ERC20_ABI_FILE: &str = "data/abi/ERC20.json";
 pub const GAP_BLOCK: u64 = 5;
-pub const POLL_INTERVAL: u64 = 2;
+pub const POLL_INTERVAL: u64 = 5;
 pub const MAX_BLOCK_RANGE: u64 = 10000;
 pub const PK_BLOCK_NUM: &str = "block_num";
 
